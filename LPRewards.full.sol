@@ -549,7 +549,7 @@ contract IRewardDistributionRecipient is Ownable {
     }
 }
 
-// File: contracts/Curvepool.sol
+// File: contracts/LPRewards.sol
 
 pragma solidity ^0.5.0;
 
@@ -562,10 +562,14 @@ contract LPTokenWrapper {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    IERC20 public uni = IERC20(0xC25a3A3b969415c80451098fa907EC722572917F);
+    IERC20 public pool;
 
     uint256 private _totalSupply;
     mapping(address => uint256) private _balances;
+
+    constructor(address _pool) public {
+        pool = IERC20(_pool);
+    }
 
     function totalSupply() public view returns (uint256) {
         return _totalSupply;
@@ -578,18 +582,26 @@ contract LPTokenWrapper {
     function stake(uint256 amount) public {
         _totalSupply = _totalSupply.add(amount);
         _balances[msg.sender] = _balances[msg.sender].add(amount);
-        uni.safeTransferFrom(msg.sender, address(this), amount);
+        pool.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function withdraw(uint256 amount) public {
         _totalSupply = _totalSupply.sub(amount);
         _balances[msg.sender] = _balances[msg.sender].sub(amount);
-        uni.safeTransfer(msg.sender, amount);
+        pool.safeTransfer(msg.sender, amount);
     }
 }
 
-contract Curvepool is LPTokenWrapper, IRewardDistributionRecipient {
-    IERC20 public snx = IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
+contract LPRewards is LPTokenWrapper, IRewardDistributionRecipient {
+    IERC20 public snx;
+
+    constructor(address _snx, address _pool)
+        public
+        LPTokenWrapper(_pool)
+    {
+        snx = IERC20(_snx);
+    }
+
     uint256 public constant DURATION = 7 days;
 
     uint256 public periodFinish = 0;
